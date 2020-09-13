@@ -1,0 +1,11 @@
+[Unit]
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/sysconfig/logwatch
+WorkingDirectory=/home/vagrant
+ExecStart=/bin/bash '/opt/logwatch.sh'
+#Type=oneshot
+
+[Install]
+WantedBy=multi-user.target
