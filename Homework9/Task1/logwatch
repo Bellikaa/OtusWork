@@ -1,0 +1,4 @@
+#Config file for my service
+keyword="KEYWORD"
+logfile="/var/log/logwatch.log"
+
