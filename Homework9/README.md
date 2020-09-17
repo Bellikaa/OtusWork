@@ -5,7 +5,7 @@
 [Здесь](https://github.com/Bellikaa/OtusWork/tree/master/Homework9/Task1) файлы Vagrant, скрипты и конфиг-файлы.
 Можно проверить, что сервис работает командой
 ```systemctl status logwatch```
-Скриншота, что все работает
+Скриншот, что все работает
 ![Image](https://github.com/Bellikaa/OtusWork/blob/master/Homework9/Task1/picture1.png)
 
 # 2. Из репозитория epel установить spawn-fcgi и переписать init-скрипт на unit-файл (имя service должно называться так же: spawn-fcgi);
@@ -13,7 +13,7 @@
 [Здесь](https://github.com/Bellikaa/OtusWork/tree/master/Homework9/Task2) файлы Vagrant, скрипты и конфиг-файлы.
 Можно проверить, что сервис работает командой
 ```systemctl status spawn-fcgi ```
-Скриншота, что все работает
+Скриншот, что все работает
 ![Image](https://github.com/Bellikaa/OtusWork/blob/master/Homework9/Task2/picture2.png)
 
 # 3. Дополнить unit-файл httpd (он же apache) возможностью запустить несколько инстансов сервера с разными конфигурационными файлами;
@@ -25,4 +25,5 @@
 systemctl status httpd@httpd1.service
 systemctl status httpd@httpd2.service
 ```
-
+Скриншот, что все работает
+![Image](https://github.com/Bellikaa/OtusWork/blob/master/Homework9/Task3/picture3.png)

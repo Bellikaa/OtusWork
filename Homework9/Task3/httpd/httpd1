@@ -1,2 +1,0 @@
-PORT=8000
-PID_FILE=/etc/httpd/run/httpd1.pid
