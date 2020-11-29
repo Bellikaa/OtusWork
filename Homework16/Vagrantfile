@@ -1,0 +1,137 @@
+# -*- mode: ruby -*-
+# vim: set ft=ruby :
+
+MACHINES = {
+:inetRouter1 => {
+        :box_name => "centos/7",
+        #:public => {:ip => '10.0.2.15', :adapter => 1},
+        :net => [
+                   {ip: '192.168.255.1', adapter: 2, netmask: "255.255.255.252", virtualbox__intnet: "router1-net"},
+                ]
+  },
+  :inetRouter2 => {
+        :box_name => "centos/7",
+        #:public => {:ip => '10.0.2.16', :adapter => 1},
+        :net => [
+                   {ip: '192.168.255.5', adapter: 2, netmask: "255.255.255.252", virtualbox__intnet: "router2-net"},
+                ]
+  },
+  :centralRouter => {
+        :box_name => "centos/7",
+        :net => [
+                   {ip: '192.168.255.2', adapter: 2, netmask: "255.255.255.252", virtualbox__intnet: "router1-net"},
+                   {ip: '192.168.255.6', adapter: 3, netmask: "255.255.255.252", virtualbox__intnet: "router2-net"},
+                   {ip: '192.168.0.1', adapter: 4, netmask: "255.255.255.240", virtualbox__intnet: "dir-net"},
+                ]
+  },
+  
+  :centralServer => {
+        :box_name => "centos/7",
+        :net => [
+                   {ip: '192.168.0.2', adapter: 2, netmask: "255.255.255.240", virtualbox__intnet: "dir-net"},
+                   
+                ]
+  }
+
+}
+
+Vagrant.configure("2") do |config|
+
+  MACHINES.each do |boxname, boxconfig|
+
+    config.vm.define boxname do |box|
+
+        box.vm.box = boxconfig[:box_name]
+        box.vm.host_name = boxname.to_s
+
+        boxconfig[:net].each do |ipconf|
+          box.vm.network "private_network", ipconf
+          
+        end
+
+        box.vm.provider :virtualbox do |box|
+          box.customize ["modifyvm", :id, "--memory", "256"]
+          box.customize ["modifyvm", :id, "--cpus", "1"]
+        end
+
+        if boxconfig.key?(:public)
+          box.vm.network "public_network", boxconfig[:public]
+        end
+
+        box.vm.provision "shell", inline: <<-SHELL
+          mkdir -p ~root/.ssh
+                cp ~vagrant/.ssh/auth* ~root/.ssh
+        SHELL
+        
+        case boxname.to_s
+        when "inetRouter1"
+          box.vm.provision "shell", run: "always", inline: <<-SHELL
+            sudo sysctl net.ipv4.conf.all.forwarding=1
+            sudo sysctl -p
+
+            # Настраиваем зону
+            sudo systemctl start firewalld
+            sudo firewall-cmd --permanent --zone=public --remove-interface=eth1
+            sudo firewall-cmd --permanent --zone=internal --add-interface=eth1
+            sudo firewall-cmd --permanent --zone=public --add-masquerade && firewall-cmd --reload
+            sudo firewall-cmd --zone=internal --permanent --remove-service=ssh && firewall-cmd --reload
+            sudo ip r add 192.168.0.0/24 via 192.168.255.2 dev eth1
+            # Ставим knockd
+            sudo yum install -y epel-release           
+            sudo yum install -y libpcap
+            sudo rpm -Uvh http://li.nux.ro/download/nux/dextop/el7Server/x86_64/knock-server-0.7-1.el7.nux.x86_64.rpm
+            sudo echo 'OPTIONS="-i eth1"' > /etc/sysconfig/knockd
+            SHELL
+          config.vm.provision "file", source: "knockd.conf", destination: "/home/vagrant/knockd.conf"  
+          box.vm.provision "shell", run: "always", inline: <<-SHELL
+            sudo mv /home/vagrant/knockd.conf /etc/knockd.conf
+            sudo chown root: /etc/knockd.conf
+            sudo systemctl start knockd && systemctl enable knockd
+            # Настраиваем пользователя и ssh
+            sudo echo "pass" | passwd --stdin vagrant
+            sudo sed -i "s/.*PasswordAuthentication.*/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+            sudo sshd -T && sudo systemctl restart sshd
+            SHELL
+
+        when "inetRouter2"
+          box.vm.network "forwarded_port", guest: 80, host: 8080    # проброс к виртуалке
+          box.vm.provision "shell", run: "always", inline: <<-SHELL
+            sudo sysctl net.ipv4.conf.all.forwarding=1
+            sudo sysctl -p
+            # Настраиваем проброс портов
+            sudo iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination 192.168.0.2:80   
+            sudo iptables -t nat -A POSTROUTING -j MASQUERADE 
+            sudo ip r add 192.168.0.0/24 via 192.168.255.6 dev eth1
+            SHELL
+
+        when "centralRouter"
+          box.vm.provision "shell", run: "always", inline: <<-SHELL
+            sudo sysctl net.ipv4.conf.all.forwarding=1
+            sudo echo "DEFROUTE=no" >> /etc/sysconfig/network-scripts/ifcfg-eth0 
+            sudo echo "GATEWAY=192.168.255.1" >> /etc/sysconfig/network-scripts/ifcfg-eth1
+            sudo ip r del default
+            sudo ip r add default via 192.168.255.1 dev eth1
+            sudo yum -y install epel-release
+            sudo yum -y install nmap
+            SHELL
+
+        when "centralServer"
+          box.vm.provision "shell", run: "always", inline: <<-SHELL
+            sudo echo "DEFROUTE=no" >> /etc/sysconfig/network-scripts/ifcfg-eth0 
+            sudo echo "GATEWAY=192.168.0.1" >> /etc/sysconfig/network-scripts/ifcfg-eth1
+            sudo ip r del default
+            sudo ip r add default via 192.168.0.1 dev eth1
+            # Ставим nginx
+            sudo yum install -y epel-release
+            sudo yum install -y nginx
+            sudo systemctl start nginx && systemctl enable nginx
+            SHELL
+        end
+
+      end
+
+  end
+  
+  
+end
+
