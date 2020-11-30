@@ -130,18 +130,22 @@ Accept-Ranges: bytes
 [root@centralRouter vagrant]#
 
 
-На inetRouter2:
+На inetRouter2 (не работает как должно):
 
+[root@inetRouter2 vagrant]# iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination 192.168.0.2:80
+[root@inetRouter2 vagrant]# iptables -t nat -A POSTROUTING -j MASQUERADE
+
+Комментарий:
+При попытке достучаться получаю:
+[root@inetRouter2 vagrant]# curl -I 192.168.0.2:8080
+curl: (7) Failed connect to 192.168.0.2:8080; Connection refused
+
+По 80-му - ОК
 
 ```
 
 
 Задание 5:
-```
-
-```
-
-Задание 6:
 ```
 По умолчанию имеем следующие маршруты на данный момент:
 [vagrant@centralRouter ~]$ ip r
