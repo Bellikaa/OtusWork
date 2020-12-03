@@ -123,24 +123,45 @@ Accept-Ranges: bytes
 ```
 
 Задание 4:
+
+Схема как происходит взаимодействие:
+
+![Image](https://github.com/Bellikaa/OtusWork/blob/master/Homework16/pic/pic1.png)
+
 ```
-Укажем на центальном роутере:
-[root@centralRouter vagrant]# ip r del default
-[root@centralRouter vagrant]# ip r add default via 192.168.255.5 dev eth2
-[root@centralRouter vagrant]#
+Трафик, который приходит на интерфейс eth1 inetRouter2 на порт 80 пробросить на порт 8080 centralServer. В firewalld это делается одной командой:
+
+firewall-cmd --zone=public --add-forward-port=port=80:proto=tcp:toport=8080:toaddr=192.168.0.2 --permanent
+
+Проверим:
+
+[root@centralServer vagrant]# curl -I 192.168.255.5:80
+HTTP/1.1 200 OK
+Server: nginx/1.16.1
+Date: Thu, 03 Dec 2020 10:25:49 GMT
+Content-Type: text/html
+Content-Length: 4833
+Last-Modified: Fri, 16 May 2014 15:12:48 GMT
+Connection: keep-alive
+ETag: "53762af0-12e1"
+Accept-Ranges: bytes
 
 
-На inetRouter2 (не работает как должно):
+[root@centralServer vagrant]# curl -I 192.168.0.2:80
+curl: (7) Failed connect to 192.168.0.2:80; Connection refused
 
-[root@inetRouter2 vagrant]# iptables -t nat -A PREROUTING -p tcp -m tcp --dport 8080 -j DNAT --to-destination 192.168.0.2:80
-[root@inetRouter2 vagrant]# iptables -t nat -A POSTROUTING -j MASQUERADE
+[root@centralServer vagrant]# curl -I 192.168.0.2:8080
+HTTP/1.1 200 OK
+Server: nginx/1.16.1
+Date: Thu, 03 Dec 2020 11:22:07 GMT
+Content-Type: text/html
+Content-Length: 4833
+Last-Modified: Fri, 16 May 2014 15:12:48 GMT
+Connection: keep-alive
+ETag: "53762af0-12e1"
+Accept-Ranges: bytes
 
-Комментарий:
-При попытке достучаться получаю:
-[root@inetRouter2 vagrant]# curl -I 192.168.0.2:8080
-curl: (7) Failed connect to 192.168.0.2:8080; Connection refused
-
-По 80-му - ОК
+[root@centralServer vagrant]#
 
 ```
 
