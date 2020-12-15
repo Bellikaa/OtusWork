@@ -86,7 +86,7 @@ SLAVE=yes
 ```
 Видим, что интерфейсы в bond0 и ip адрес висит на bond'е.
 
-Тестируем интерфейс, сделаем две ssh-сессии, в одном терминале пишем: `watch -n1 cat /proc/net/bond0`, в другом - `ifdown eth1 && ifup eth1`.
+Тестируем интерфейс, сделаем две ssh-сессии, в одном терминале пишем: `watch -n1 cat /proc/net/bonding/bond0`, в другом - `ifdown eth1 && ifup eth1`.
 
 ![ssh1](pic/pic1.gif)
 ![ssh2](pic/pic2.gif)
