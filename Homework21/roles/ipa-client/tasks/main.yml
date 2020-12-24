@@ -1,0 +1,27 @@
+---
+- name: setup packages for ipa client
+  yum:
+    name: ipa-client
+    state: present
+
+- name: Add line to file /etc/hosts
+  lineinfile:
+     dest: /etc/hosts
+     regexp: '^(.*)ipaserver.home(.*)$'
+     line: '10.0.10.2       ipaserver.home.local    ipaserver   home.local'
+
+
+- name: setup ipa client
+  command: >
+    ipa-client-install -U \
+      -p admin \
+      -w password \
+      --server={{ ipa_server_name }} \
+      --ip-address={{ ipa_server_ip }} \
+      --domain={{ ipa_domain }} \
+      --realm={{ ipa_realm }} \
+      --hostname={{ hostname }} \
+      --mkhomedir
+  args:
+    creates: /etc/ipa/default.conf
+...
